@@ -10,9 +10,6 @@ from matplotlib import pyplot as plt
 from collections import defaultdict
 import json
 
-
-url = st_javascript("await fetch('').then(r => window.parent.location.href)")
-
 def reformat_json():
     new_data = defaultdict(dict)
     with open('timeseries.json', 'r') as f:
@@ -47,14 +44,20 @@ class Availability(nn.Module):
 
 
 
-if "medicine_id" in st.query_params:
-    
-    
-    graphid = st.query_params["medicine_id"]
-    graphid = graphid.strip("'")
 
-    
+data = pd.read_csv("medicines.csv")
+st.title('MediCast')
 
+                
+option = st.selectbox(
+   "Which medicine data would you like to view?",
+   ("Deprakine", "Ivermectin Medical Valley", "Lisinopril Ratiopharm","Metomylan","Tasminetta","Zanipress"),
+   index=None,
+   placeholder="Select contact method...",
+)
+
+if option:
+    graphid = option
 
     databases = {}
     databases = convert_dataframe()
@@ -66,18 +69,18 @@ if "medicine_id" in st.query_params:
     for key in db1:
         db1[key] = pd.DataFrame(db1[key].items(), columns=['date', 'score'])
     db1 = dict(db1)
-    
+        
     try:
         databases[graphid] = pd.merge(databases[graphid], db1[graphid], on='date', how='left', suffixes=('_1', '_2'))
     except Exception:
         pass
-    
+        
     databases[graphid]['date'] = pd.to_datetime(databases[graphid]['date'])
     databases[graphid]['year'] = databases[graphid]['date'].dt.year
     databases[graphid]['month'] = databases[graphid]['date'].dt.month
     databases[graphid]['day'] = databases[graphid]['date'].dt.day
 
-    
+        
     databases[graphid].dropna(inplace=True)
     X_train, X_test, y_train, y_test = train_test_split(databases[graphid][['year', 'month', 'day', 'score']].values, databases[graphid]['value'].values, test_size=0.2, shuffle=False)
     X_train = torch.tensor(X_train, dtype=torch.float32)
@@ -91,9 +94,9 @@ if "medicine_id" in st.query_params:
     print('models_new/'+ graphid + ".pth")
     model.eval()
 
-    #with torch.no_grad():
-    #    for i in range(len(X_test)):
-    #        pred = model(X_test[i, :].reshape(1, 4))
+        #with torch.no_grad():
+        #    for i in range(len(X_test)):
+        #        pred = model(X_test[i, :].reshape(1, 4))
 
 
 
@@ -104,17 +107,5 @@ if "medicine_id" in st.query_params:
 
     st.pyplot(fig)
 
-else:
-    data = pd.read_csv("medicines.csv")
-    st.title('Medicine visualization')
-
-    text_search = st.text_input("Search medicines", value="")
-    result = data[data["Medicine"].str.contains(text_search)]
-
-    
-    if text_search:
-        for row in result["Medicine"]:
-            st.link_button(row, url=url+ "?medicine_id='"+ row + "'")
-                
                 
                 
